@@ -6,9 +6,63 @@ import copy
 def zeromatrix(m,n):
         p= [[0 for i in range(n)] for j in range(m)]
         return(p)
+#Calculates the norm of a vector
+def norm(x):
+    total = 0
+    for i in range(len(x)):
+        total += x[i]**2
 
+    return total**(1/2)
 
+# Function for printing the matrix
+def mat_print(a):
+    for i in range(len(a)):
+        print(a[i])
 
+# Fucnction for vector subtraction
+def vec_sub(a, b):
+    if (len(a) != len(b)):
+        exit()
+    else:
+        return [x1 - x2 for (x1, x2) in zip(a, b)]
+
+# Function for reading a csv file
+def read_csv(path):
+    with open(path, 'r+') as file:
+        results = []
+
+        for line in file:
+            line = line.rstrip('\n') # remove `\n` at the end of line
+            items = line.split(',')
+            results.append(list(items))
+
+        # after for-loop
+        return results
+#Forward backward substitution
+def forward_backward(U: list, L: list, b: list) -> list:
+    y = [0 for i in range(len(b))]
+
+    for i in range(len(b)):
+        total = 0
+        for j in range(i):
+            total += L[i][j] * y[j]
+        y[i] = b[i] - total
+
+    x = [0 for i in range(len(b))]
+
+    for i in reversed(range(len(b))):
+        total = 0
+        for j in range(i+1, len(b)):
+            total += U[i][j] * x[j]
+        x[i] = (y[i] - total)/U[i][i]
+
+    return x
+# Matrix multiplication
+def matmul(a, b):
+    product = [[sum(i*j for i,j in zip(a_row, b_col)) for b_col in zip(*b)] for
+            a_row in a]
+
+    return product
 #function for matrix vector multiplication
 def mat_vec_mult(A, B):
     n = len(B)
@@ -21,165 +75,154 @@ def mat_vec_mult(A, B):
     else:
         print('This combination is not suitable for multiplication')
 
-#Partial Pivot
-def Parpivot(A, B, k):
-    if np.abs(A[k][k]) < 1e-10:
-        n = len(B)
-        for i in range(k + 1, n):
-            if abs(A[i][k]) > abs(A[k][k]) and abs(A[k][k]) == 0:
-                A[k], A[i] = A[i], A[k]
-                B[k], B[i] = B[i], B[k]
-    return A, B
 
 #Gauss-Jordan
-#creating augmented matrix
-def a_mat(A,B):
-    #creation of zero mat with required rows and column numbers
-    a_AB = [[0 for a in range(len(A))]for b in range(len(A)+1)]
-    for i in range(len(A)):
-        for j in range(len(A)+1):
-            if j>=(len(A)):
-                a_AB[j][i] = B[i]
-            else :
-                a_AB[j][i] = A[j][i]
-    return a_AB
+def gau_jor(A: list, b: list) -> list:
+    def partial_pivot(A: list, b: list):
+        n = len(A)
+        for i in range(n-1):
+            if abs(A[i][i]) < 1e-10:
+                for j in range(i+1,n):
+                    if abs(A[j][i]) > abs(A[i][i]):
+                        A[j], A[i] = A[i], A[j]  # interchange A[i] and A[j]
+                        b[j], b[i] = b[i], b[j]  # interchange b[i] and b[j]
 
-#creating reduced Row Echelon Form
-def GauJo(a_mat):
-    for i in range(len(a_mat[0])):
-        p = a_mat[i][i]
-        for j in range(len(a_mat)):
-            a_mat[j][i] = a_mat[j][i]/p
-        for k in range(len(a_mat[0])):
-            if k == i or a_mat[i][k] == 0:
-                next
-            else:
-                factor = a_mat[i][k]
-                for l in range(len(a_mat)):
-                    a_mat[l][k] = a_mat[l][k] - factor*a_mat[l][i]
+    n = len(A)
+    partial_pivot(A, b)
+    for i in range(n):
+        pivot = A[i][i]
+        b[i] = b[i] / pivot
+        for c in range(i, n):
+            A[i][c] = A[i][c] / pivot
 
-    return a_mat[len(a_mat)-1]
+        for k in range(n):
+            if k != i and A[k][i] != 0:
+                factor = A[k][i]
+                b[k] = b[k] - factor*b[i]
+                for j in range(i, n):
+                    A[k][j] = A[k][j] - factor*A[i][j]
+
+    x = b
+    return x
 
 #LU Decomposition
-MAX = 100
-def luD(mat,b, n):
-    lower = [[0 for x in range(n)]
-             for y in range(n)]
-    upper = [[0 for x in range(n)]
-             for y in range(n)]
+def lu_decomp(A: list, b: list) -> list:
+    def partial_pivot(A: list, b: list):
+        count = 0
+        n = len(A)
+        for i in range(n-1):
+            if abs(A[i][i]) < 1e-10:
+                for j in range(i+1,n):
+                    if abs(A[j][i]) > abs(A[i][i]):
+                        A[j], A[i] = A[i], A[j]  # interchange ith and jth rows of matrix 'A'
+                        count += 1
+                        b[j], b[i] = b[i], b[j]  # interchange ith and jth elements of vector 'b'
 
-    # Decomposing matrix into Upper
-    # and Lower triangular matrix
-    for i in range(n):
-        # Upper Triangular
-        for k in range(i, n):
-            # Summation of L(i, j) * U(j, k)
-            sum = 0
-            for j in range(i):
-                sum += (lower[i][j] * upper[j][k])
-            # Evaluating U(i, k)
-            upper[i][k] = mat[i][k] - sum
-        # Lower Triangular
-        for k in range(i, n):
-            if (i == k):
-                lower[i][i] = 1  # Diagonal as 1
-            else:
-                # Summation of L(k, j) * U(j, i)
-                sum = 0
-                for j in range(i):
-                    sum += (lower[k][j] * upper[j][i])
-                # Evaluating L(k, i)
-                lower[k][i] = int((mat[k][i] - sum)/upper[i][i])
-    L = lower
-    U = upper
-    # Performing substitution Ly=b
-    y = [0 for i in range(n)]
-    for i in range(0, n, 1):
-        y[i] = b[i] / float(L[i][i])
-        for k in range(0, i, 1):
-            y[i] -= y[k] * L[i][k]
-    # Performing substitution Ux=y
-    x = [0 for i in range(n)]
-    for i in range(n - 1, -1, -1):
-        x[i] = y[i] / float(U[i][i])
-        for j in range(i + 1, n):
-            x[i] -= x[k] * U[i][k]
+        return A, b,count
+    def crout(A: list):
+        U = [[0 for i in range(len(A))] for j in range(len(A))]
+        L = [[0 for i in range(len(A))] for j in range(len(A))]
+
+        for i in range(len(A)):
+            L[i][i] = 1
+
+        for j in range(len(A)):
+            for i in range(len(A)):
+                total = 0
+                for k in range(i):
+                    total += L[i][k] * U[k][j]
+
+                if i == j:
+                    U[i][j] = A[i][j] - total
+
+                elif i > j:
+                    L[i][j] = (A[i][j] - total)/U[j][j]
+
+                else :
+                    U[i][j] = A[i][j] - total
+
+        return U, L
+
+    partial_pivot(A, b)
+    U, L = crout(A)
+    x = forward_backward(U, L, b)
     return x
 
-#tolerance level already added here
 # Jacobi Method
-def Jacobi_Inv(A,B, x=None, tol = 10**(-4)):
-    res = []
-    # Initial guess if required
-    if x is None:
-        x = np.zeros(len(A))
+def jacobi(A: list, b: list, tol: float) -> list:
+    n = len(A)
+    x = [1 for i in range(n)]     # define a dummy vector for storing solution vector
+    xold = [0 for i in range(n)]
+    iterations = []; residue = [];
+    count = 0
+    while norm(vec_sub(xold, x)) > tol:
+        iterations.append(count)
+        count += 1
+        residue.append(norm(vec_sub(xold, x)))
+        xold = x.copy()
+        for i in range(n):
+            total = 0
+            for j in range(n):
+                if i != j:
+                    total += A[i][j] * x[j]
 
-    # vector of the diagonal elements of A and subtract
+            x[i] = 1/A[i][i] * (b[i] - total)
 
-    D = np.diag(A)
-    LU = A - np.diagflat(D)
-
-    # Iterate till tolerance
-    err = np.inf
-    k = 0
-    re = 0
-    while err>tol:
-        # Storing previous x assumed
-        x_p = copy.deepcopy(x)
-        x = (B - np.dot(LU,x)) / D
-        x_p = x-x_p
-        err = sum(x_p[i]**2 for i in range(len(x)))
-        k+=1
-        res.append(math.sqrt(err))
-    return x,res,k
+    return x, iterations,residue
 
 #Gauss Seidel
-#tolerance level is added
-def Gau_Seid(A, B, x=None, tol=1e-5):
+def gauss_seidel(A: list, b: list, tol: float) -> list:
     n = len(A)
-    res = []
-    k = 0
-    if x is None: x = np.zeros(n)
-    err = np.inf
+    x = [0 for i in range(n)]
+    xold = [1 for i in range(n)]
+    iterations = []; residue = [];
+    count = 0
 
-    while err > tol:
-        sum = 0
-        # calculation of x
+    while norm(vec_sub(x, xold)) > tol:
+        xold = x.copy()
+        iterations.append(count)
+        count += 1
         for i in range(n):
-            d = B[i]
+            d = b[i]
             for j in range(n):
-                if (i != j):
+                if j != i:
                     d -= A[i][j] * x[j]
-            # Storing previous and updating the value of our solution
-            temp = x[i]
+
             x[i] = d / A[i][i]
-            sum += (x[i] - temp) ** 2
 
-        # Error update
-        err = sum
-        res.append(math.sqrt(err))
-        k+=1
-    return x,res,k
+        residue.append(norm(vec_sub(x, xold)))
 
-def ConjuGra(A,b,e):
+    return x, iterations,residue
+#Conjugate Gradient
+def conjgrad(A: list, b: list, tol: float) -> list:
     n = len(b)
-    res = []
-    k = 0
-    x = np.zeros(n)
-    r = b - np.dot(A,x)
+    x = [1 for i in range(n)]
+    r = vec_sub(b, vecmul(A, x))
     d = r.copy()
-    i = 1
+    rprevdot = dotprod(r, r)
+    iterations = []; residue = [];
+    count = 0       # counts the number of iterations
+
+    # convergence in n steps
     for i in range(n):
-        while np.dot(r,r) > e:
-            u = np.dot(A,d)
-            al = np.dot(d,r)/np.dot(d,u)
-            x = x + al*d
-            r = b - np.dot(A,x)
-            be = -np.dot(d,r)/np.dot(d,u)
-            d = r + be*d
-            res.append(r)
-            k+=1
-    return x
+        iterations.append(count)
+        Ad = vecmul(A, d)
+        alpha = rprevdot / dotprod(d, Ad)
+        for j in range(n):
+            x[j] += alpha*d[j]
+            r[j] -= alpha*Ad[j]
+        rnextdot = dotprod(r, r)
+        residue.append(sqrt(rnextdot))
+        count += 1
+
+        if sqrt(rnextdot) < tol:
+            return x, iterations, residue
+
+        else:
+            beta = rnextdot / rprevdot
+            for j in range(n):
+                d[j] = r[j] + beta*d[j]
+            rprevdot = rnextdot
 #Givans method
 def crossprod(A,B):
     if len(A[0]) == len(B):
@@ -229,8 +272,7 @@ def gaussgivan(A, ep):
         #checking the offset in the matrix obtained
         max, i, j = maxoff(A)
     return A
-#Power method
-import math
+
 #frobenius norm
 def frob_norm(A):
     sum = 0
@@ -247,7 +289,7 @@ def pow_norm(A):
     normA = scaler_matrix_division(max, A)
     return normA
 
-
+# Power method
 def pow_method(A, x0=[[1], [1], [1]], eps=1.0e-4):
     i = 0
     lam0 = 1
@@ -387,3 +429,47 @@ def jkknife(A):
     #calculating error
     err = ((n-1)/n)*sum
     return yibar,err
+#Defining Chebyshev function
+def chebyshev(x: float, order: int) -> float:
+    if order == 0:
+        return 1
+    elif order == 1:
+        return 2*x - 1
+    elif order == 2:
+        return 8*x**2 - 8*x + 1
+    elif order == 3:
+        return 32*x**3 - 48*x**2 + 18*x - 1
+
+#Defining the function for chebyshev fit
+def fitw_cheby(xvals: np.array, yvals: np.array, degree: int):
+    n = len(xvals)
+    para = degree + 1
+    A = np.zeros((para, para))
+    b = np.zeros(para)
+
+    for i in range(para):
+        for j in range(para):
+            total = 0
+            for k in range(n):
+                total += chebyshev(xvals[k], j) * chebyshev(xvals[k], i)
+
+            A[i, j] = total
+
+    for i in range(para):
+        total = 0
+        for k in range(n):
+            total += chebyshev(xvals[k], i) * yvals[k]
+
+        b[i] = total
+
+    para = lu_decomp(A, b)
+    return para,A
+# Function for Pseudo random number generator
+def mu_li_co_ge(seed: float, a: float, m: float, num: int) -> list:
+    x = seed
+    rands = []
+    for i in range(num):
+        x = (a*x) % m
+        rands.append(x)
+
+    return rands
